@@ -1,0 +1,467 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Products Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">GraphQL Demo</a>
+            <div class="navbar-nav">
+                <a class="nav-link active" href="/products">Products</a>
+                <a class="nav-link" href="/categories">Categories</a>
+                <a class="nav-link" href="/users">Users</a>
+                <a class="nav-link" href="/graphiql">GraphiQL</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <h2>Product Management</h2>
+        
+        <!-- Filter Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>Filters</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary" onclick="loadAllProducts()">All Products</button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success" onclick="loadProductsSortedByPrice()">Sort by Price</button>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="categoryFilter" class="form-select" onchange="loadProductsByCategory()">
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Product Form -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Add New Product</h5>
+            </div>
+            <div class="card-body">
+                <form id="addProductForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Title</label>
+                                <input type="text" class="form-control" id="productTitle" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="productQuantity">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Price</label>
+                                <input type="number" step="0.01" class="form-control" id="productPrice" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">User</label>
+                                <select class="form-select" id="productUser" required>
+                                    <option value="">Select User</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" id="productCategory">
+                                    <option value="">Select Category</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="productDesc" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Products Table -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Products List</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Category</th>
+                            <th>User</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <!-- Products will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProductForm">
+                        <input type="hidden" id="editProductId">
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-control" id="editProductTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="editProductQuantity">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Price</label>
+                            <input type="number" step="0.01" class="form-control" id="editProductPrice" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">User</label>
+                            <select class="form-select" id="editProductUser" required>
+                                <option value="">Select User</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" id="editProductCategory">
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="editProductDesc" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="updateProduct()">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const GRAPHQL_URL = '/graphql';
+        
+        // GraphQL Query Helper
+        function graphqlQuery(query, variables = {}) {
+            return $.ajax({
+                url: GRAPHQL_URL,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ query, variables })
+            });
+        }
+        
+        // Load all products
+        function loadAllProducts() {
+            const query = `
+                query {
+                    getAllProducts {
+                        id
+                        title
+                        quantity
+                        price
+                        desc
+                        user { id fullname }
+                        category { id name }
+                    }
+                }
+            `;
+            
+            graphqlQuery(query).done(function(response) {
+                displayProducts(response.data.getAllProducts);
+            }).fail(function(error) {
+                console.error('Error loading products:', error);
+                alert('Failed to load products');
+            });
+        }
+        
+        // Load products sorted by price
+        function loadProductsSortedByPrice() {
+            const query = `
+                query {
+                    getProductsSortedByPrice {
+                        id
+                        title
+                        quantity
+                        price
+                        desc
+                        user { id fullname }
+                        category { id name }
+                    }
+                }
+            `;
+            
+            graphqlQuery(query).done(function(response) {
+                displayProducts(response.data.getProductsSortedByPrice);
+            }).fail(function(error) {
+                console.error('Error loading sorted products:', error);
+                alert('Failed to load sorted products');
+            });
+        }
+        
+        // Load products by category
+        function loadProductsByCategory() {
+            const categoryId = $('#categoryFilter').val();
+            if (!categoryId) {
+                loadAllProducts();
+                return;
+            }
+            
+            const query = `
+                query($categoryId: ID!) {
+                    getProductsByCategory(categoryId: $categoryId) {
+                        id
+                        title
+                        quantity
+                        price
+                        desc
+                        user { id fullname }
+                        category { id name }
+                    }
+                }
+            `;
+            
+            graphqlQuery(query, { categoryId }).done(function(response) {
+                displayProducts(response.data.getProductsByCategory);
+            }).fail(function(error) {
+                console.error('Error loading products by category:', error);
+                alert('Failed to load products by category');
+            });
+        }
+        
+        // Display products in table
+        function displayProducts(products) {
+            const tbody = $('#productsTableBody');
+            tbody.empty();
+            
+            products.forEach(product => {
+                const row = `
+                    <tr>
+                        <td>${product.id}</td>
+                        <td>${product.title}</td>
+                        <td>${product.quantity || 'N/A'}</td>
+                        <td>$${product.price.toFixed(2)}</td>
+                        <td>${product.category ? product.category.name : 'N/A'}</td>
+                        <td>${product.user ? product.user.fullname : 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editProduct(${product.id})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteProduct(${product.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+        
+        // Load categories for dropdowns
+        function loadCategories() {
+            const query = `
+                query {
+                    getAllCategories {
+                        id
+                        name
+                    }
+                }
+            `;
+            
+            graphqlQuery(query).done(function(response) {
+                const categories = response.data.getAllCategories;
+                const select1 = $('#productCategory');
+                const select2 = $('#editProductCategory');
+                const select3 = $('#categoryFilter');
+                
+                categories.forEach(cat => {
+                    select1.append(`<option value="${cat.id}">${cat.name}</option>`);
+                    select2.append(`<option value="${cat.id}">${cat.name}</option>`);
+                    select3.append(`<option value="${cat.id}">${cat.name}</option>`);
+                });
+            });
+        }
+        
+        // Load users for dropdowns
+        function loadUsers() {
+            const query = `
+                query {
+                    getAllUsers {
+                        id
+                        fullname
+                    }
+                }
+            `;
+            
+            graphqlQuery(query).done(function(response) {
+                const users = response.data.getAllUsers;
+                const select1 = $('#productUser');
+                const select2 = $('#editProductUser');
+                
+                users.forEach(user => {
+                    select1.append(`<option value="${user.id}">${user.fullname}</option>`);
+                    select2.append(`<option value="${user.id}">${user.fullname}</option>`);
+                });
+            });
+        }
+        
+        // Add product
+        $('#addProductForm').submit(function(e) {
+            e.preventDefault();
+            
+            const mutation = `
+                mutation($input: ProductInput!) {
+                    createProduct(input: $input) {
+                        id
+                        title
+                        quantity
+                        price
+                    }
+                }
+            `;
+            
+            const input = {
+                title: $('#productTitle').val(),
+                quantity: parseInt($('#productQuantity').val()) || null,
+                desc: $('#productDesc').val(),
+                price: parseFloat($('#productPrice').val()),
+                userId: $('#productUser').val(),
+                categoryId: $('#productCategory').val() || null
+            };
+            
+            graphqlQuery(mutation, { input }).done(function(response) {
+                alert('Product added successfully!');
+                $('#addProductForm')[0].reset();
+                loadAllProducts();
+            }).fail(function(error) {
+                console.error('Error adding product:', error);
+                alert('Failed to add product');
+            });
+        });
+        
+        // Edit product - show modal
+        function editProduct(id) {
+            const query = `
+                query($id: ID!) {
+                    getProductById(id: $id) {
+                        id
+                        title
+                        quantity
+                        desc
+                        price
+                        user { id }
+                        category { id }
+                    }
+                }
+            `;
+            
+            graphqlQuery(query, { id: id.toString() }).done(function(response) {
+                const product = response.data.getProductById;
+                $('#editProductId').val(product.id);
+                $('#editProductTitle').val(product.title);
+                $('#editProductQuantity').val(product.quantity);
+                $('#editProductPrice').val(product.price);
+                $('#editProductDesc').val(product.desc);
+                $('#editProductUser').val(product.user.id);
+                $('#editProductCategory').val(product.category ? product.category.id : '');
+                
+                $('#editModal').modal('show');
+            });
+        }
+        
+        // Update product
+        function updateProduct() {
+            const mutation = `
+                mutation($id: ID!, $input: ProductInput!) {
+                    updateProduct(id: $id, input: $input) {
+                        id
+                        title
+                    }
+                }
+            `;
+            
+            const input = {
+                title: $('#editProductTitle').val(),
+                quantity: parseInt($('#editProductQuantity').val()) || null,
+                desc: $('#editProductDesc').val(),
+                price: parseFloat($('#editProductPrice').val()),
+                userId: $('#editProductUser').val(),
+                categoryId: $('#editProductCategory').val() || null
+            };
+            
+            const id = $('#editProductId').val();
+            
+            graphqlQuery(mutation, { id, input }).done(function(response) {
+                alert('Product updated successfully!');
+                $('#editModal').modal('hide');
+                loadAllProducts();
+            }).fail(function(error) {
+                console.error('Error updating product:', error);
+                alert('Failed to update product');
+            });
+        }
+        
+        // Delete product
+        function deleteProduct(id) {
+            if (!confirm('Are you sure you want to delete this product?')) {
+                return;
+            }
+            
+            const mutation = `
+                mutation($id: ID!) {
+                    deleteProduct(id: $id)
+                }
+            `;
+            
+            graphqlQuery(mutation, { id: id.toString() }).done(function(response) {
+                if (response.data.deleteProduct) {
+                    alert('Product deleted successfully!');
+                    loadAllProducts();
+                } else {
+                    alert('Failed to delete product');
+                }
+            }).fail(function(error) {
+                console.error('Error deleting product:', error);
+                alert('Failed to delete product');
+            });
+        }
+        
+        // Initialize on page load
+        $(document).ready(function() {
+            loadAllProducts();
+            loadCategories();
+            loadUsers();
+        });
+    </script>
+</body>
+</html>

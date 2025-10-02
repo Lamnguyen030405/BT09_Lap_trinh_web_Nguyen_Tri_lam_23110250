@@ -1,123 +1,85 @@
+# GraphQL Schema
+# Đặt file này tại: src/main/resources/graphql/schema.graphqls
+
 type Category {
-    cateid: ID!
-    catename: String!
-    icon: String
-    userid: Int
-    products: [Product]
+    id: ID!
+    name: String!
+    images: String
 }
 
 type User {
     id: ID!
-    username: String!
-    fullname: String
-    email: String
+    fullname: String!
+    email: String!
     phone: String
-    image: String
-    roleid: Int
-    status: Int
+    categories: [Category]
+    products: [Product]
 }
 
 type Product {
-    productid: ID!
-    productname: String!
-    quantity: Int!
-    unitprice: Float!
-    images: String
-    description: String!
-    discount: Float
-    createdate: String
-    status: Int!
+    id: ID!
+    title: String!
+    quantity: Int
+    desc: String
+    price: Float!
+    user: User
     category: Category
 }
 
+# Input Types for Mutations
 input CategoryInput {
-    catename: String!
-    icon: String
-    userid: Int
+    name: String!
+    images: String
 }
 
 input UserInput {
-    username: String!
+    fullname: String!
+    email: String!
     password: String!
-    fullname: String
-    email: String
     phone: String
-    image: String
-    roleid: Int
-    status: Int
+    categoryIds: [ID]
 }
 
 input ProductInput {
-    productname: String!
-    quantity: Int!
-    unitprice: Float!
-    images: String
-    description: String!
-    discount: Float
-    status: Int!
-    cateid: Int
-}
-
-input CategoryUpdateInput {
-    catename: String
-    icon: String
-    userid: Int
-}
-
-input UserUpdateInput {
-    username: String
-    password: String
-    fullname: String
-    email: String
-    phone: String
-    image: String
-    roleid: Int
-    status: Int
-}
-
-input ProductUpdateInput {
-    productname: String
+    title: String!
     quantity: Int
-    unitprice: Float
-    images: String
-    description: String
-    discount: Float
-    status: Int
-    cateid: Int
+    desc: String
+    price: Float!
+    userId: ID!
+    categoryId: ID
 }
 
+# Queries
 type Query {
     # Category Queries
     getAllCategories: [Category]
     getCategoryById(id: ID!): Category
-    getCategoriesByUser(userid: Int!): [Category]
     
     # User Queries
     getAllUsers: [User]
     getUserById(id: ID!): User
-    getUserByUsername(username: String!): User
     
     # Product Queries
     getAllProducts: [Product]
     getProductById(id: ID!): Product
     getProductsSortedByPrice: [Product]
-    getProductsByCategory(cateid: Int!): [Product]
-    searchProducts(name: String!): [Product]
+    getProductsByCategory(categoryId: ID!): [Product]
 }
 
+# Mutations
 type Mutation {
     # Category Mutations
     createCategory(input: CategoryInput!): Category
-    updateCategory(id: ID!, input: CategoryUpdateInput!): Category
+    updateCategory(id: ID!, input: CategoryInput!): Category
     deleteCategory(id: ID!): Boolean
     
     # User Mutations
     createUser(input: UserInput!): User
-    updateUser(id: ID!, input: UserUpdateInput!): User
+    updateUser(id: ID!, input: UserInput!): User
     deleteUser(id: ID!): Boolean
     
     # Product Mutations
     createProduct(input: ProductInput!): Product
-    updateProduct(id: ID!, input: ProductUpdateInput!): Product
+    updateProduct(id: ID!, input: ProductInput!): Product
     deleteProduct(id: ID!): Boolean
 }
