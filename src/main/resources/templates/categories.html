@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categories Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">GraphQL Demo</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/products}">Products</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/categories}">Categories</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/users}">Users</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/graphiql}">GraphiQL</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <h2>Category Management</h2>
+        
+        <!-- Alert Messages -->
+        <div id="alertContainer"></div>
+        
+        <!-- Add Category Form -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Add New Category</h5>
+            </div>
+            <div class="card-body">
+                <form id="addCategoryForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="categoryName" class="form-label">Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="categoryName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="categoryImages" class="form-label">Image URL</label>
+                                <input type="text" class="form-control" id="categoryImages" placeholder="https://example.com/image.jpg">
+                                <small class="form-text text-muted">Enter a valid image URL</small>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Category
+                    </button>
+                    <button type="reset" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Reset
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Categories Table -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Categories List</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Image</th>
+                                <th style="width: 150px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categoriesTableBody">
+                            <tr>
+                                <td colspan="4" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="editModalLabel">Edit Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editCategoryForm">
+                        <input type="hidden" id="editCategoryId">
+                        <div class="mb-3">
+                            <label for="editCategoryName" class="form-label">Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editCategoryName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCategoryImages" class="form-label">Image URL</label>
+                            <input type="text" class="form-control" id="editCategoryImages">
+                            <small class="form-text text-muted">Enter a valid image URL</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="updateCategory()">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const GRAPHQL_URL = /*[[@{/graphql}]]*/ '/graphql';
+        
+        // Utility function for GraphQL queries
+        function graphqlQuery(query, variables = {}) {
+            return $.ajax({
+                url: GRAPHQL_URL,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ query, variables })
+            });
+        }
+        
+        // Show alert message
+        function showAlert(message, type = 'success') {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            $('#alertContainer').html(alertHtml);
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => {
+                $('.alert').alert('close');
+            }, 3000);
+        }
+        
+        // Load all categories
+        function loadCategories() {
+            const query = `
+                query {
+                    getAllCategories {
+                        id
+                        name
+                        images
+                    }
+                }
+            `;
+            
+            graphqlQuery(query)
+                .done(function(response) {
+                    if (response.data && response.data.getAllCategories) {
+                        displayCategories(response.data.getAllCategories);
+                    }
+                })
+                .fail(function(error) {
+                    console.error('Error loading categories:', error);
+                    showAlert('Failed to load categories', 'danger');
+                    $('#categoriesTableBody').html('<tr><td colspan="4" class="text-center text-danger">Failed to load categories</td></tr>');
+                });
+        }
+        
+        // Display categories in table
+        function displayCategories(categories) {
+            const tbody = $('#categoriesTableBody');
+            tbody.empty();
+            
+            if (categories.length === 0) {
+                tbody.html('<tr><td colspan="4" class="text-center text-muted">No categories found</td></tr>');
+                return;
+            }
+            
+            categories.forEach(category => {
+                const imagePreview = category.images ? 
+                    `<img src="${category.images}" alt="${category.name}" style="max-width: 50px; max-height: 50px;" class="img-thumbnail">` : 
+                    '<span class="text-muted">No image</span>';
+                    
+                const row = `
+                    <tr>
+                        <td>${category.id}</td>
+                        <td>${escapeHtml(category.name)}</td>
+                        <td>${imagePreview}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editCategory(${category.id})" title="Edit">
+                                <i class="bi bi-pencil"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteCategory(${category.id})" title="Delete">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+        
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // Add category
+        $('#addCategoryForm').submit(function(e) {
+            e.preventDefault();
+            
+            const mutation = `
+                mutation($input: CategoryInput!) {
+                    createCategory(input: $input) {
+                        id
+                        name
+                        images
+                    }
+                }
+            `;
+            
+            const input = {
+                name: $('#categoryName').val().trim(),
+                images: $('#categoryImages').val().trim()
+            };
+            
+            graphqlQuery(mutation, { input })
+                .done(function(response) {
+                    if (response.data && response.data.createCategory) {
+                        showAlert('Category added successfully!', 'success');
+                        $('#addCategoryForm')[0].reset();
+                        loadCategories();
+                    }
+                })
+                .fail(function(error) {
+                    console.error('Error adding category:', error);
+                    const errorMsg = error.responseJSON?.errors?.[0]?.message || 'Failed to add category';
+                    showAlert(errorMsg, 'danger');
+                });
+        });
+        
+        // Edit category - show modal
+        function editCategory(id) {
+            const query = `
+                query($id: ID!) {
+                    getCategoryById(id: $id) {
+                        id
+                        name
+                        images
+                    }
+                }
+            `;
+            
+            graphqlQuery(query, { id: id.toString() })
+                .done(function(response) {
+                    if (response.data && response.data.getCategoryById) {
+                        const category = response.data.getCategoryById;
+                        $('#editCategoryId').val(category.id);
+                        $('#editCategoryName').val(category.name);
+                        $('#editCategoryImages').val(category.images || '');
+                        
+                        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+                        modal.show();
+                    }
+                })
+                .fail(function(error) {
+                    console.error('Error loading category:', error);
+                    showAlert('Failed to load category details', 'danger');
+                });
+        }
+        
+        // Update category
+        function updateCategory() {
+            const mutation = `
+                mutation($id: ID!, $input: CategoryInput!) {
+                    updateCategory(id: $id, input: $input) {
+                        id
+                        name
+                        images
+                    }
+                }
+            `;
+            
+            const input = {
+                name: $('#editCategoryName').val().trim(),
+                images: $('#editCategoryImages').val().trim()
+            };
+            
+            const id = $('#editCategoryId').val();
+            
+            graphqlQuery(mutation, { id, input })
+                .done(function(response) {
+                    if (response.data && response.data.updateCategory) {
+                        showAlert('Category updated successfully!', 'success');
+                        bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                        loadCategories();
+                    }
+                })
+                .fail(function(error) {
+                    console.error('Error updating category:', error);
+                    const errorMsg = error.responseJSON?.errors?.[0]?.message || 'Failed to update category';
+                    showAlert(errorMsg, 'danger');
+                });
+        }
+        
+        // Delete category
+        function deleteCategory(id) {
+            if (!confirm('Are you sure you want to delete this category?')) {
+                return;
+            }
+            
+            const mutation = `
+                mutation($id: ID!) {
+                    deleteCategory(id: $id)
+                }
+            `;
+            
+            graphqlQuery(mutation, { id: id.toString() })
+                .done(function(response) {
+                    if (response.data && response.data.deleteCategory) {
+                        showAlert('Category deleted successfully!', 'success');
+                        loadCategories();
+                    } else {
+                        showAlert('Failed to delete category', 'danger');
+                    }
+                })
+                .fail(function(error) {
+                    console.error('Error deleting category:', error);
+                    const errorMsg = error.responseJSON?.errors?.[0]?.message || 'Failed to delete category';
+                    showAlert(errorMsg, 'danger');
+                });
+        }
+        
+        // Initialize on page load
+        $(document).ready(function() {
+            loadCategories();
+        });
+        /*]]>*/
+    </script>
+</body>
+</html>
