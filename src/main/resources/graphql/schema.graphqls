@@ -1,0 +1,123 @@
+type Category {
+    cateid: ID!
+    catename: String!
+    icon: String
+    userid: Int
+    products: [Product]
+}
+
+type User {
+    id: ID!
+    username: String!
+    fullname: String
+    email: String
+    phone: String
+    image: String
+    roleid: Int
+    status: Int
+}
+
+type Product {
+    productid: ID!
+    productname: String!
+    quantity: Int!
+    unitprice: Float!
+    images: String
+    description: String!
+    discount: Float
+    createdate: String
+    status: Int!
+    category: Category
+}
+
+input CategoryInput {
+    catename: String!
+    icon: String
+    userid: Int
+}
+
+input UserInput {
+    username: String!
+    password: String!
+    fullname: String
+    email: String
+    phone: String
+    image: String
+    roleid: Int
+    status: Int
+}
+
+input ProductInput {
+    productname: String!
+    quantity: Int!
+    unitprice: Float!
+    images: String
+    description: String!
+    discount: Float
+    status: Int!
+    cateid: Int
+}
+
+input CategoryUpdateInput {
+    catename: String
+    icon: String
+    userid: Int
+}
+
+input UserUpdateInput {
+    username: String
+    password: String
+    fullname: String
+    email: String
+    phone: String
+    image: String
+    roleid: Int
+    status: Int
+}
+
+input ProductUpdateInput {
+    productname: String
+    quantity: Int
+    unitprice: Float
+    images: String
+    description: String
+    discount: Float
+    status: Int
+    cateid: Int
+}
+
+type Query {
+    # Category Queries
+    getAllCategories: [Category]
+    getCategoryById(id: ID!): Category
+    getCategoriesByUser(userid: Int!): [Category]
+    
+    # User Queries
+    getAllUsers: [User]
+    getUserById(id: ID!): User
+    getUserByUsername(username: String!): User
+    
+    # Product Queries
+    getAllProducts: [Product]
+    getProductById(id: ID!): Product
+    getProductsSortedByPrice: [Product]
+    getProductsByCategory(cateid: Int!): [Product]
+    searchProducts(name: String!): [Product]
+}
+
+type Mutation {
+    # Category Mutations
+    createCategory(input: CategoryInput!): Category
+    updateCategory(id: ID!, input: CategoryUpdateInput!): Category
+    deleteCategory(id: ID!): Boolean
+    
+    # User Mutations
+    createUser(input: UserInput!): User
+    updateUser(id: ID!, input: UserUpdateInput!): User
+    deleteUser(id: ID!): Boolean
+    
+    # Product Mutations
+    createProduct(input: ProductInput!): Product
+    updateProduct(id: ID!, input: ProductUpdateInput!): Product
+    deleteProduct(id: ID!): Boolean
+}
